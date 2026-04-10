@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مقرأة ألف لام ميم - حجز المواعيد</title>
+  <style>
+    :root {
+      --primary: #4a148c;
+      --gold: #d4af37;
+      --bg: #f8f9fa;
+      --text: #333;
+    }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background-color: var(--bg); padding: 15px; margin: 0; display: flex; justify-content: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 550px; background: white; padding: 25px 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(74, 20, 140, 0.08); border-top: 8px solid var(--primary); align-self: flex-start; margin-top: 20px; }
+    h2 { color: var(--primary); text-align: center; margin-top: 0; margin-bottom: 5px; font-size: 24px; }
+    .subtitle { text-align: center; color: #777; font-size: 14px; margin-bottom: 25px; }
+    
+    input[type="text"] { width: 100%; box-sizing: border-box; padding: 15px; margin: 10px 0 20px; border: 2px solid #eee; border-radius: 12px; text-align: center; font-size: 16px; transition: 0.3s; }
+    input[type="text"]:focus { border-color: var(--primary); outline: none; }
+    
+    .btn-main { background: var(--primary); color: white; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(74, 20, 140, 0.2); }
+    .btn-main:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+    .btn-main:hover:not(:disabled) { background: #380f6b; transform: translateY(-2px); }
+    
+    .cal-btn { background: #34a853; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-top: 8px; display: block; width: 100%; transition: 0.2s; }
+    .cal-btn:hover { background: #2d8c45; }
+
+    .filters { display: flex; gap: 10px; margin-bottom: 20px; background: #faf8fc; padding: 15px; border-radius: 12px; border: 1px solid #eee; }
+    select { flex: 1; padding: 12px; border-radius: 8px; border: 2px solid #e0d4e8; outline: none; font-family: inherit; color: var(--primary); font-weight: bold; background: white;}
+    select:focus { border-color: var(--gold); }
+
+    .status-bar { background: #fff3e0; color: #e65100; padding: 12px; border-radius: 10px; text-align: center; font-weight: bold; margin-bottom: 20px; border: 1px solid #ffe0b2; transition: 0.3s; }
+    
+    .day-card { border: 1px solid #eee; border-radius: 15px; margin-bottom: 15px; background: #fff; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+    .day-header { background: var(--primary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: bold;}
+    .period-badge { background: var(--gold); color: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+    
+    .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; padding: 15px; }
+    .slot { padding: 12px 5px; border: 2px solid #f0f0f0; border-radius: 10px; cursor: pointer; font-weight: bold; color: var(--primary); font-size: 15px; text-align: center; transition: 0.2s; }
+    .slot:hover:not(.disabled) { border-color: var(--gold); background: #fdfaf2; }
+    .slot.selected { background: var(--gold); border-color: var(--gold); color: var(--primary); box-shadow: 0 4px 8px rgba(212, 175, 55, 0.3); }
+    .slot.disabled { opacity: 0.35; background: #f9f9f9; border-color: #eee; color: #999; cursor: not-allowed; }
+    
+    .summary-box { background: #f0f4c3; padding: 20px; border-radius: 15px; border: 1px solid #cddc39; margin-top: 20px; text-align: right; }
+    .summary-item { border-bottom: 1px dashed #cddc39; padding: 12px 0; }
+    .summary-item:last-child { border-bottom: none; }
+    .summary-item b { color: #33691e; font-size: 16px; display: block; margin-bottom: 5px;}
+    
+    .loading-spinner { text-align: center; padding: 30px; color: var(--primary); font-weight: bold; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>مقرأة ألف لام ميم 🕋</h2>
+  <div class="subtitle">نظام حجز المواعيد</div>
+  
+  <div id="loginArea">
+    <p style="text-align: center; color: #555; font-size: 15px;">أهلاً بكِ.. يرجى كتابة اسمكِ الثلاثي للبدء:</p>
+    <input type="text" id="nameInput" placeholder="الاسم الثلاثي...">
+    <button class="btn-main" onclick="fetchData()">تسجيل الدخول</button>
+  </div>
+
+  <div id="loadingArea" class="loading-spinner" style="display:none;">
+    <div class="spinner"></div>
+    <span id="loadingText">جاري الاتصال بقاعدة البيانات...</span>
+  </div>
+
+  <div id="bookingArea" style="display:none;">
+    <div class="filters">
+      <select id="fDay" onchange="drawSlots()">
+        <option value="الكل">تصفية: كل الأيام</option>
+      </select>
+      <select id="fPeriod" onchange="drawSlots()">
+        <option value="الكل">تصفية: كل الفترات</option>
+      </select>
+    </div>
+
+    <div class="status-bar" id="selectionStatus">
+      يرجى اختيار <b>موعدين</b> (يمنع اختيار يومين متتاليين)
+    </div>
+
+    <div id="contentSlots"></div>
+    <button id="submitBtn" class="btn-main" disabled onclick="submitBooking()">تأكيد الحجز المبدئي</button>
+  </div>
+
+  <div id="doneArea" style="display:none;"></div>
+</div>
+
+<script>
+  // 🔴🔴 ضعي رابط Apps Script الجديد الخاص بالمعلمة الثانية هنا بين علامتي التنصيص 🔴🔴
+  const API_URL = "https://script.google.com/macros/s/AKfycbzPrXg2gacgRCMux6mBd4lTPi0Plzi4JzqpxN1vkUhHf7e813udzWHTuR-dCnvvtBaW/exec";
+  
+  let allSlots = [];
+  let selectedSlots = [];
+  // تمت إزالة يوم الجمعة من الترتيب
+  const daysOrder = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"];
+
+  async function fetchData() {
+    const name = document.getElementById('nameInput').value.trim();
+    if(!name) return alert("يرجى إدخال الاسم الثلاثي أولاً");
+    
+    document.getElementById('loginArea').style.display = 'none';
+    document.getElementById('loadingArea').style.display = 'flex';
+
+    try {
+      const response = await fetch(`${API_URL}?name=${encodeURIComponent(name)}`);
+      const data = await response.json();
+      
+      document.getElementById('loadingArea').style.display = 'none';
+
+      if(data.alreadyBooked) {
+        showFinalSuccess(data.mySlots, true);
+      } else {
+        allSlots = data.available;
+        initFilters();
+        document.getElementById('bookingArea').style.display = 'block';
+        drawSlots();
+      }
+    } catch (error) {
+      alert("حدث خطأ في الاتصال. يرجى التأكد من وضع الرابط الصحيح في الكود.");
+      location.reload();
+    }
+  }
+
+  function initFilters() {
+    const dSel = document.getElementById('fDay');
+    const pSel = document.getElementById('fPeriod');
+    
+    daysOrder.forEach(d => {
+      if(allSlots.some(s => s.day === d)) dSel.innerHTML += `<option value="${d}">${d}</option>`;
+    });
+    
+    const uniquePeriods = [...new Set(allSlots.map(s => s.period))];
+    uniquePeriods.forEach(p => pSel.innerHTML += `<option value="${p}">${p}</option>`);
+  }
+
+  function drawSlots() {
+    const container = document.getElementById('contentSlots');
+    const fDay = document.getElementById('fDay').value;
+    const fPeriod = document.getElementById('fPeriod').value;
+    container.innerHTML = "";
+    let hasVisible = false;
+    
+    daysOrder.forEach(day => {
+      if(fDay !== "الكل" && fDay !== day) return;
+      
+      let daySlots = allSlots.filter(s => s.day === day && (fPeriod === "الكل" || s.period === fPeriod));
+      if(daySlots.length === 0) return;
+      
+      hasVisible = true;
+      const period = daySlots[0].period;
+      let icon = "☀️";
+      if (period === "فجراً") icon = "🌅";
+      if (period === "عصراً") icon = "🌤️";
+      if (period === "مساءً") icon = "🌙";
+
+      let html = `
+        <div class="day-card">
+          <div class="day-header">
+            <span>${day}</span>
+            <span class="period-badge">${icon} ${period}</span>
+          </div>
+          <div class="slots-grid">`;
+          
+      daySlots.forEach(s => {
+        const isSel = selectedSlots.find(x => x.id === s.id);
+        const isDis = checkDisabled(day) && !isSel;
+        html += `<div class="slot ${isSel ? 'selected' : ''} ${isDis ? 'disabled' : ''}" 
+                      onclick="toggleSlot(${s.id},'${day}',${isDis})">${s.time}</div>`;
+      });
+      container.innerHTML += html + `</div></div>`;
+    });
+
+    if(!hasVisible) container.innerHTML = `<p style="text-align:center; color:#888;">لا توجد مواعيد متاحة تطابق تصفيتك.</p>`;
+    updateStatusUI();
+  }
+
+  function checkDisabled(day) {
+    if(selectedSlots.length === 0) return false;
+    if(selectedSlots.length >= 2) return true;
+    const dayIdx = daysOrder.indexOf(day);
+    const selIdx = daysOrder.indexOf(selectedSlots[0].day);
+    return Math.abs(dayIdx - selIdx) <= 1 || dayIdx === selIdx;
+  }
+
+  function toggleSlot(id, day, dis) {
+    if(dis) return;
+    const idx = selectedSlots.findIndex(x => x.id === id);
+    if(idx > -1) {
+      selectedSlots.splice(idx, 1);
+    } else if(selectedSlots.length < 2) {
+      selectedSlots.push(allSlots.find(x => x.id === id));
+    }
+    drawSlots();
+  }
+
+  function updateStatusUI() {
+    const statusDiv = document.getElementById('selectionStatus');
+    const btn = document.getElementById('submitBtn');
+    
+    if (selectedSlots.length === 0) {
+      statusDiv.innerHTML = "يرجى اختيار <b>موعدين</b> (يمنع اختيار يومين متتاليين)";
+      statusDiv.style.background = "#fff3e0"; statusDiv.style.color = "#e65100";
+      btn.disabled = true;
+    } else if (selectedSlots.length === 1) {
+      statusDiv.innerHTML = "أحسنتِ، اختاري <b>الموعد الثاني</b> الآن.";
+      statusDiv.style.background = "#e3f2fd"; statusDiv.style.color = "#1565c0";
+      btn.disabled = true;
+    } else if (selectedSlots.length === 2) {
+      statusDiv.innerHTML = "✅ اكتمل النصاب! يمكنكِ تأكيد المواعيد الآن.";
+      statusDiv.style.background = "#e8f5e9"; statusDiv.style.color = "#2e7d32";
+      btn.disabled = false;
+    }
+  }
+
+  async function submitBooking() {
+    const name = document.getElementById('nameInput').value;
+    const ids = selectedSlots.map(s => s.id);
+    
+    document.getElementById('bookingArea').style.display = 'none';
+    document.getElementById('loadingText').innerText = "جاري تأكيد حجزك في النظام...";
+    document.getElementById('loadingArea').style.display = 'flex';
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "book", name: name, ids: ids })
+      });
+      
+      const result = await response.json();
+      if(result.status === "success") {
+        document.getElementById('loadingArea').style.display = 'none';
+        showFinalSuccess(selectedSlots, false);
+      } else {
+        alert("عذراً، يبدو أن طالبة أخرى سبقتك لحجز أحد هذه المواعيد. يرجى اختيار موعد آخر.");
+        location.reload();
+      }
+    } catch (e) {
+      alert("حدث خطأ أثناء الحجز، يرجى المحاولة مجدداً.");
+      location.reload();
+    }
+  }
+
+  function showFinalSuccess(slots, isOldBooking) {
+    const area = document.getElementById('doneArea');
+    const msg = isOldBooking ? "أهلاً بكِ مجدداً، هذه هي مواعيدك المعتمدة:" : "✅ تم تأكيد حجزكِ بنجاح!";
+    
+    let html = `<h3 style="text-align:center; color:var(--primary);">${msg}</h3><div class="summary-box">`;
+    
+    slots.forEach(s => {
+      const labelText = `${s.period} - ${s.day} - ${s.time}`;
+      html += `
+        <div class="summary-item">
+          <b>📍 ${labelText}</b>
+          <button class="cal-btn" onclick="addToCalendar('${s.day}','${s.time}')">🗓️ إضافة لتقويم جوجل (تنبيه مسبق)</button>
+        </div>`;
+    });
+    
+    area.innerHTML = html + `</div><p style="text-align:center; font-size:13px; color:#666; margin-top:20px;">يرجى تصوير هذه الشاشة للاحتفاظ بمواعيدك 🌸</p>`;
+    area.style.display = 'block';
+  }
+
+  function addToCalendar(dayName, timeStr) {
+    const daysMap = {"الأحد":0, "الاثنين":1, "الثلاثاء":2, "الأربعاء":3, "الخميس":4, "الجمعة":5, "السبت":6};
+    
+    let targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + (daysMap[dayName] + 7 - targetDate.getDay()) % 7);
+    
+    const [h, m] = timeStr.split(':');
+    targetDate.setHours(parseInt(h), parseInt(m), 0);
+    
+    const startStr = targetDate.toISOString().replace(/-|:|\.\d+/g, "");
+    targetDate.setMinutes(targetDate.getMinutes() + 15);
+    const endStr = targetDate.toISOString().replace(/-|:|\.\d+/g, "");
+    
+    const calUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=موعد+تسميع+-+مقرأة+ألف+لام+ميم&dates=${startStr}/${endStr}&details=موعد+تسميع+مقرأة+ألف+لام+ميم+(تنبيه+تلقائي)&reminders=true&add=24h`;
+    
+    window.open(calUrl, '_blank');
+  }
+</script>
+
+</body>
+</html>
