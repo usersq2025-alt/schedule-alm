@@ -32,11 +32,15 @@
 
     .status-bar { background: #fff3e0; color: #e65100; padding: 12px; border-radius: 10px; text-align: center; font-weight: bold; margin-bottom: 20px; border: 1px solid #ffe0b2; transition: 0.3s; }
     
+    /* التصميم الجديد للبطاقات والفترات */
     .day-card { border: 1px solid #eee; border-radius: 15px; margin-bottom: 15px; background: #fff; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
-    .day-header { background: var(--primary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: bold;}
-    .period-badge { background: var(--gold); color: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+    .day-header { background: var(--primary); color: white; padding: 12px 15px; text-align: center; font-size: 18px; font-weight: bold; }
     
-    .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; padding: 15px; }
+    .period-section { background: #faf8fc; border: 1px solid #e0d4e8; border-radius: 12px; padding: 15px; margin-bottom: 15px; }
+    .period-section:last-child { margin-bottom: 0; }
+    .period-title { font-size: 14px; font-weight: bold; color: var(--primary); margin-bottom: 12px; display: inline-block; background: #fdfaf2; border: 1px solid var(--gold); padding: 5px 15px; border-radius: 20px; }
+    
+    .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; }
     .slot { padding: 12px 5px; border: 2px solid #f0f0f0; border-radius: 10px; cursor: pointer; font-weight: bold; color: var(--primary); font-size: 15px; text-align: center; transition: 0.2s; }
     .slot:hover:not(.disabled) { border-color: var(--gold); background: #fdfaf2; }
     .slot.selected { background: var(--gold); border-color: var(--gold); color: var(--primary); box-shadow: 0 4px 8px rgba(212, 175, 55, 0.3); }
@@ -145,39 +149,51 @@
     let hasVisible = false;
     
     daysOrder.forEach(day => {
-      // تجاوز اليوم إذا لم يطابق فلتر الأيام
       if(fDay !== "الكل" && fDay !== day) return;
       
-      // 🔴 التحديث الجديد: استخراج الفترات المتاحة لهذا اليوم خصيصاً (صباحاً ومساءً)
-      let availablePeriodsForThisDay = [...new Set(allSlots.filter(s => s.day === day && (fPeriod === "الكل" || s.period === fPeriod)).map(s => s.period))];
+      // جلب جميع المواعيد لليوم الحالي والتي تطابق الفلتر
+      let daySlotsFiltered = allSlots.filter(s => s.day === day && (fPeriod === "الكل" || s.period === fPeriod));
+      if(daySlotsFiltered.length === 0) return;
       
-      // رسم بطاقة منفصلة لكل فترة داخل نفس اليوم
-      availablePeriodsForThisDay.forEach(period => {
-        let slotsForThisCard = allSlots.filter(s => s.day === day && s.period === period);
-        if(slotsForThisCard.length === 0) return;
+      hasVisible = true;
+      
+      // فتح بطاقة اليوم الرئيسي (التي تحتوي على اسم اليوم فقط)
+      let html = `
+        <div class="day-card">
+          <div class="day-header">
+            <span>يوم ${day}</span>
+          </div>
+          <div style="padding: 15px;">`;
+          
+      // استخراج الفترات المتاحة لهذا اليوم بناءً على الفلترة (مثلا: صباحاً، مساءً)
+      let periodsForDay = [...new Set(daySlotsFiltered.map(s => s.period))];
+      
+      // رسم مستطيل منفصل لكل فترة داخل نفس بطاقة اليوم
+      periodsForDay.forEach(period => {
+        let slotsForPeriod = daySlotsFiltered.filter(s => s.period === period);
         
-        hasVisible = true;
         let icon = "☀️";
         if (period === "فجراً") icon = "🌅";
         if (period === "عصراً") icon = "🌤️";
         if (period === "مساءً") icon = "🌙";
 
-        let html = `
-          <div class="day-card">
-            <div class="day-header">
-              <span>${day}</span>
-              <span class="period-badge">${icon} ${period}</span>
-            </div>
+        html += `
+          <div class="period-section">
+            <div class="period-title">${icon} ${period}</div>
             <div class="slots-grid">`;
             
-        slotsForThisCard.forEach(s => {
+        slotsForPeriod.forEach(s => {
           const isSel = selectedSlots.find(x => x.id === s.id);
           const isDis = checkDisabled(day) && !isSel;
           html += `<div class="slot ${isSel ? 'selected' : ''} ${isDis ? 'disabled' : ''}" 
                         onclick="toggleSlot(${s.id},'${day}',${isDis})">${s.time}</div>`;
         });
-        container.innerHTML += html + `</div></div>`;
+        
+        html += `</div></div>`; // إغلاق مستطيل الفترة
       });
+      
+      html += `</div></div>`; // إغلاق بطاقة اليوم
+      container.innerHTML += html;
     });
 
     if(!hasVisible) container.innerHTML = `<p style="text-align:center; color:#888;">لا توجد مواعيد متاحة تطابق تصفيتك.</p>`;
