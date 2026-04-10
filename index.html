@@ -91,12 +91,11 @@
 </div>
 
 <script>
-  // 🔴🔴 ضعي رابط Apps Script الجديد الخاص بالمعلمة الثانية هنا بين علامتي التنصيص 🔴🔴
+  // 🔴🔴 ضعي رابط Apps Script الخاص بالمعلمة الثانية هنا 🔴🔴
   const API_URL = "https://script.google.com/macros/s/AKfycbzPrXg2gacgRCMux6mBd4lTPi0Plzi4JzqpxN1vkUhHf7e813udzWHTuR-dCnvvtBaW/exec";
   
   let allSlots = [];
   let selectedSlots = [];
-  // تمت إزالة يوم الجمعة من الترتيب
   const daysOrder = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"];
 
   async function fetchData() {
@@ -146,33 +145,39 @@
     let hasVisible = false;
     
     daysOrder.forEach(day => {
+      // تجاوز اليوم إذا لم يطابق فلتر الأيام
       if(fDay !== "الكل" && fDay !== day) return;
       
-      let daySlots = allSlots.filter(s => s.day === day && (fPeriod === "الكل" || s.period === fPeriod));
-      if(daySlots.length === 0) return;
+      // 🔴 التحديث الجديد: استخراج الفترات المتاحة لهذا اليوم خصيصاً (صباحاً ومساءً)
+      let availablePeriodsForThisDay = [...new Set(allSlots.filter(s => s.day === day && (fPeriod === "الكل" || s.period === fPeriod)).map(s => s.period))];
       
-      hasVisible = true;
-      const period = daySlots[0].period;
-      let icon = "☀️";
-      if (period === "فجراً") icon = "🌅";
-      if (period === "عصراً") icon = "🌤️";
-      if (period === "مساءً") icon = "🌙";
+      // رسم بطاقة منفصلة لكل فترة داخل نفس اليوم
+      availablePeriodsForThisDay.forEach(period => {
+        let slotsForThisCard = allSlots.filter(s => s.day === day && s.period === period);
+        if(slotsForThisCard.length === 0) return;
+        
+        hasVisible = true;
+        let icon = "☀️";
+        if (period === "فجراً") icon = "🌅";
+        if (period === "عصراً") icon = "🌤️";
+        if (period === "مساءً") icon = "🌙";
 
-      let html = `
-        <div class="day-card">
-          <div class="day-header">
-            <span>${day}</span>
-            <span class="period-badge">${icon} ${period}</span>
-          </div>
-          <div class="slots-grid">`;
-          
-      daySlots.forEach(s => {
-        const isSel = selectedSlots.find(x => x.id === s.id);
-        const isDis = checkDisabled(day) && !isSel;
-        html += `<div class="slot ${isSel ? 'selected' : ''} ${isDis ? 'disabled' : ''}" 
-                      onclick="toggleSlot(${s.id},'${day}',${isDis})">${s.time}</div>`;
+        let html = `
+          <div class="day-card">
+            <div class="day-header">
+              <span>${day}</span>
+              <span class="period-badge">${icon} ${period}</span>
+            </div>
+            <div class="slots-grid">`;
+            
+        slotsForThisCard.forEach(s => {
+          const isSel = selectedSlots.find(x => x.id === s.id);
+          const isDis = checkDisabled(day) && !isSel;
+          html += `<div class="slot ${isSel ? 'selected' : ''} ${isDis ? 'disabled' : ''}" 
+                        onclick="toggleSlot(${s.id},'${day}',${isDis})">${s.time}</div>`;
+        });
+        container.innerHTML += html + `</div></div>`;
       });
-      container.innerHTML += html + `</div></div>`;
     });
 
     if(!hasVisible) container.innerHTML = `<p style="text-align:center; color:#888;">لا توجد مواعيد متاحة تطابق تصفيتك.</p>`;
